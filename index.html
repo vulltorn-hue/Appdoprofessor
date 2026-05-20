@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>App do Professor - Sistema de Provas</title>
+    <!-- Bibliotecas -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            text-align: center;
+        }
+
+        .login-container h1 {
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 15px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        .btn-primary { background: #2a5298; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-info { background: #17a2b8; color: white; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .dashboard-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .dashboard-item:hover { transform: translateY(-5px); }
+        .dashboard-item i { font-size: 48px; margin-bottom: 15px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            overflow-x: auto;
+            display: block;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th { background: #f5f5f5; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .questao-multipla {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .radio-group label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: normal;
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .card { padding: 15px; }
+            th, td { font-size: 12px; padding: 8px; }
+            .btn { padding: 8px 12px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- Tela de Login -->
+        <div id="loginScreen" class="login-container">
+            <h1>📝 App do Professor</h1>
+            <div class="login-box">
+                <i class="fas fa-chalkboard-teacher" style="font-size: 50px; color: #2a5298; margin-bottom: 20px;"></i>
+                <h3 id="loginTitle">Acessar Sistema</h3>
+                <input type="password" id="senhaInput" placeholder="Digite sua senha" autocomplete="off">
+                <button onclick="verificarLogin()">Entrar</button>
+                <div id="primeiroAcessoMsg" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+            </div>
+        </div>
+
+        <!-- Tela Principal -->
+        <div id="mainScreen" style="display: none;">
+            <div class="app-header">
+                <h2><i class="fas fa-graduation-cap"></i> Provas App</h2>
+                <div class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sair</div>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboardView">
+                <div class="dashboard-grid">
+                    <div class="dashboard-item" onclick="mostrarView('questoes')">
+                        <i class="fas fa-database"></i>
+                        <h3>Banco de Questões</h3>
+                        <p id="totalQuestoes">0 questões</p>
+                    </div>
+                    <div class="dashboard-item" onclick="mostrarView('gerarProva')">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>Gerar Prova</h3>
+                        <p>Criar nova avaliação</p>
+                    </div>
+                    <div class="dashboard-item" onclick="mostrarView('minhasProvas')">
+                        <i class="fas fa-folder-open"></i>
+                        <h3>Minhas Provas</h3>
+                        <p id="totalProvas">0 provas</p>
+                    </div>
+                    <div class="dashboard-item" onclick="mostrarView('corrigir')">
+                        <i class="fas fa-check-double"></i>
+                        <h3>Corrigir Prova</h3>
+                        <p>Leitura de QR Code</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Banco de Questões -->
+            <div id="questoesView" style="display: none;" class="card">
+                <h3><i class="fas fa-database"></i> Banco de Questões</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="abrirModalQuestao()">➕ 1 Questão</button>
+                    <button class="btn btn-success" onclick="importarQuestoesLote()">📋 Importar lote (texto)</button>
+                    <button class="btn btn-info" onclick="mostrarFormularioMultiplo()">📝 Adicionar 5/10/15/20</button>
+                    <button class="btn btn-warning" onclick="abrirDeepSeekDireto()">🤖 Gerar com IA</button>
+                </div>
+                
+                <div id="formularioMultiplo" style="display: none; margin-top: 20px;">
+                    <div style="background: #f0f0f0; padding: 15px; border-radius: 10px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                            <button class="btn btn-primary" onclick="adicionarMultiplasQuestoes(5)">+5 Questões</button>
+                            <button class="btn btn-primary" onclick="adicionarMultiplasQuestoes(10)">+10 Questões</button>
+                            <button class="btn btn-primary" onclick="adicionarMultiplasQuestoes(15)">+15 Questões</button>
+                            <button class="btn btn-primary" onclick="adicionarMultiplasQuestoes(20)">+20 Questões</button>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <button class="btn btn-success" onclick="salvarMultiplasQuestoes()">💾 Salvar todas</button>
+                            <button class="btn btn-danger" onclick="limparTodasQuestoesPendentes()">🗑️ Limpar tudo</button>
+                        </div>
+                        <div id="multiplasQuestoesContainer"></div>
+                        <button class="btn btn-warning" onclick="fecharFormularioMultiplo()" style="margin-top: 15px;">Cancelar</button>
+                    </div>
+                </div>
+                
+                <div id="listaQuestoes"></div>
+                <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
+            </div>
+
+            <!-- Gerar Prova -->
+            <div id="gerarProvaView" style="display: none;" class="card">
+                <h3><i class="fas fa-file-alt"></i> Gerar Nova Prova</h3>
+                <div class="form-group">
+                    <label>Nome da Prova:</label>
+                    <input type="text" id="nomeProva" placeholder="Ex: Prova Matemática - P1 2025">
+                </div>
+                <div id="questoesDisponiveis"></div>
+                <button class="btn btn-primary" onclick="gerarProva()">Gerar Prova</button>
+                <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
+            </div>
+
+            <!-- Minhas Provas -->
+            <div id="minhasProvasView" style="display: none;" class="card">
+                <h3><i class="fas fa-folder-open"></i> Minhas Provas</h3>
+                <div id="listaProvas"></div>
+                <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
+            </div>
+
+            <!-- Correção -->
+            <div id="corrigirView" style="display: none;" class="card">
+                <h3><i class="fas fa-qrcode"></i> Correção com QR Code</h3>
+                <button class="btn btn-primary" onclick="iniciarScanner()">📷 Ler QR Code da Prova</button>
+                <div id="reader" style="margin-top:20px;"></div>
+                <div id="resultadoCorrecao" style="margin-top:20px;"></div>
+                <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Questão -->
+    <div id="modalQuestao" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Nova Questão</h3>
+            <input type="hidden" id="questaoId">
+            <textarea id="enunciado" placeholder="Enunciado da questão" rows="3" style="width:100%; padding:10px; margin:10px 0; border:1px solid #ddd; border-radius:8px;"></textarea>
+            <input type="text" id="alternativaA" placeholder="Alternativa A" style="width:100%; padding:8px; margin:5px 0;">
+            <input type="text" id="alternativaB" placeholder="Alternativa B" style="width:100%; padding:8px; margin:5px 0;">
+            <input type="text" id="alternativaC" placeholder="Alternativa C" style="width:100%; padding:8px; margin:5px 0;">
+            <input type="text" id="alternativaD" placeholder="Alternativa D" style="width:100%; padding:8px; margin:5px 0;">
+            <select id="respostaCorreta" style="width:100%; padding:10px; margin:10px 0;">
+                <option value="A">A</option><option value="B">B</option>
+                <option value="C">C</option><option value="D">D</option>
+            </select>
+            <input type="text" id="categoria" placeholder="Categoria (ex: Matemática, Português)" style="width:100%; padding:10px; margin:10px 0;">
+            <button class="btn btn-primary" onclick="salvarQuestao()">Salvar</button>
+            <button class="btn btn-danger" onclick="fecharModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Modal Visualizar Prova -->
+    <div id="modalProva" class="modal">
+        <div class="modal-content">
+            <h3>Visualizar Prova</h3>
+            <div id="visualizarProva"></div>
+            <div class="qrcode-container" style="text-align:center; margin: 15px 0;">
+                <div id="qrcode"></div>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 15px;">
+                    <button class="btn btn-primary" onclick="visualizarProvaAba()">👁️ Visualizar</button>
+                    <button class="btn btn-success" onclick="compartilharProva()">📤 Compartilhar</button>
+                    <button class="btn btn-info" onclick="baixarPDFProva()">💾 Baixar PDF</button>
+                </div>
+            </div>
+            <button class="btn btn-warning" onclick="fecharModalProva()" style="width: 100%;">← Voltar para Provas</button>
+        </div>
+    </div>
+
+    <!-- Modal DeepSeek - App não instalado -->
+    <div id="modalDeepSeekSemApp" class="modal">
+        <div class="modal-content">
+            <h3><i class="fab fa-android"></i> DeepSeek não encontrado</h3>
+            <p style="margin: 15px 0;">Para gerar questões com IA, você precisa instalar o DeepSeek no seu celular.</p>
+            <p style="margin: 10px 0; background: #f0f0f0; padding: 10px; border-radius: 8px;">
+                <i class="fas fa-download"></i> <strong>DeepSeek</strong> - Assistente de IA gratuito
+            </p>
+            <button class="btn btn-primary" onclick="baixarDeepSeek()" style="width: 100%; margin: 5px 0;">
+                📥 BAIXAR DA GOOGLE PLAY
+            </button>
+            <button class="btn btn-warning" onclick="fecharModalDeepSeek()" style="width: 100%;">
+                🔁 Tentar novamente
+            </button>
+            <button class="btn btn-danger" onclick="fecharModalDeepSeek()" style="width: 100%;">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Modal DeepSeek - Formulário para gerar questões -->
+    <div id="modalDeepSeekForm" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-robot"></i> Gerar questões com DeepSeek</h3>
+            <div class="form-group">
+                <label>Assunto:</label>
+                <input type="text" id="iaAssunto" placeholder="Ex: Frações, Segunda Guerra, Verbos">
+            </div>
+            <div class="form-group">
+                <label>Série:</label>
+                <input type="text" id="iaSerie" placeholder="Ex: 6º ano, 1º ano EM">
+            </div>
+            <div class="form-group">
+                <label>Nível:</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="iaNivel" value="Fácil"> Fácil</label>
+                    <label><input type="radio" name="iaNivel" value="Médio" checked> Médio</label>
+                    <label><input type="radio" name="iaNivel" value="Difícil"> Difícil</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Quantidade de questões:</label>
+                <input type="number" id="iaQuantidade" min="1" max="50" value="5">
+            </div>
+            <button class="btn btn-primary" onclick="gerarPromptDeepSeek()" style="width: 100%; margin-top: 10px;">
+                🚀 GERAR E ABRIR DEEPSEEK
+            </button>
+            <button class="btn btn-danger" onclick="fecharModalDeepSeekForm()" style="width: 100%; margin-top: 10px;">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // Dados
+        let questoes = [];
+        let provas = [];
+        let provaAtualCompartilhar = null;
+
+        // Carregar dados
+        function carregarDados() {
+            const storedQuestoes = localStorage.getItem('questoes');
+            const storedProvas = localStorage.getItem('provas');
+            if (storedQuestoes) questoes = JSON.parse(storedQuestoes);
+            if (storedProvas) provas = JSON.parse(storedProvas);
+            if (questoes.length === 0) {
+                questoes = [
+                    { id: 1, enunciado: "Qual é a capital do Brasil?", alternativaA: "São Paulo", alternativaB: "Rio de Janeiro", alternativaC: "Brasília", alternativaD: "Salvador", respostaCorreta: "C", categoria: "Geografia" },
+                    { id: 2, enunciado: "Quem escreveu 'Dom Casmurro'?", alternativaA: "Machado de Assis", alternativaB: "José de Alencar", alternativaC: "Carlos Drummond", alternativaD: "Graciliano Ramos", respostaCorreta: "A", categoria: "Português" }
+                ];
+                salvarQuestoes();
+            }
+            atualizarContadores();
+        }
+
+        function salvarQuestoes() { localStorage.setItem('questoes', JSON.stringify(questoes)); }
+        function salvarProvas() { localStorage.setItem('provas', JSON.stringify(provas)); atualizarContadores(); }
+        function atualizarContadores() {
+            if (document.getElementById('totalQuestoes')) {
+                document.getElementById('totalQuestoes').innerText = questoes.length + ' questões';
+                document.getElementById('totalProvas').innerText = provas.length + ' provas';
+            }
+        }
+
+        // Login
+        function verificarLogin() {
+            const senhaDigitada = document.getElementById('senhaInput').value;
+            const senhaSalva = localStorage.getItem('senha_professor');
+            if (!senhaSalva) {
+                if (senhaDigitada.length >= 4) {
+                    localStorage.setItem('senha_professor', senhaDigitada);
+                    entrarApp();
+                } else {
+                    document.getElementById('primeiroAcessoMsg').innerHTML = 'Crie uma senha com pelo menos 4 dígitos!';
+                }
+            } else {
+                if (senhaDigitada === senhaSalva) entrarApp();
+                else alert('Senha incorreta!');
+            }
+        }
+
+        function entrarApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'block';
+            carregarDados();
+            mostrarView('dashboard');
+        }
+
+        function logout() {
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('mainScreen').style.display = 'none';
+            document.getElementById('senhaInput').value = '';
+        }
+
+        function mostrarView(view) {
+            const views = ['dashboardView', 'questoesView', 'gerarProvaView', 'minhasProvasView', 'corrigirView'];
+            views.forEach(v => { document.getElementById(v).style.display = 'none'; });
+            if (view === 'dashboard') document.getElementById('dashboardView').style.display = 'block';
+            else if (view === 'questoes') { document.getElementById('questoesView').style.display = 'block'; listarQuestoes(); }
+            else if (view === 'gerarProva') { document.getElementById('gerarProvaView').style.display = 'block'; listarQuestoesDisponiveis(); }
+            else if (view === 'minhasProvas') { document.getElementById('minhasProvasView').style.display = 'block'; listarProvas(); }
+            else if (view === 'corrigir') document.getElementById('corrigirView').style.display = 'block';
+        }
+
+        // CRUD Questões
+        function listarQuestoes() {
+            if (questoes.length === 0) {
+                document.getElementById('listaQuestoes').innerHTML = '<p>Nenhuma questão cadastrada. Clique em "+ Nova Questão" para começar.</p>';
+                return;
+            }
+            const html = `<table><thead><tr><th>ID</th><th>Enunciado</th><th>Categoria</th><th>Resposta</th><th>Ações</th></tr></thead><tbody>
+                ${questoes.map(q => `<tr><td>${q.id}</td><td>${q.enunciado.substring(0, 50)}...</td><td>${q.categoria}</td><td>${q.respostaCorreta}</td>
+                <td><button class="btn btn-primary" onclick="editarQuestao(${q.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-danger" onclick="excluirQuestao(${q.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}
+            </tbody></table>`;
+            document.getElementById('listaQuestoes').innerHTML = html;
+        }
+
+        function abrirModalQuestao(id = null) {
+            document.getElementById('modalQuestao').style.display = 'flex';
+            if (id) {
+                const q = questoes.find(q => q.id === id);
+                document.getElementById('modalTitle').innerText = 'Editar Questão';
+                document.getElementById('questaoId').value = q.id;
+                document.getElementById('enunciado').value = q.enunciado;
+                document.getElementById('alternativaA').value = q.alternativaA;
+                document.getElementById('alternativaB').value = q.alternativaB;
+                document.getElementById('alternativaC').value = q.alternativaC;
+                document.getElementById('alternativaD').value = q.alternativaD;
+                document.getElementById('respostaCorreta').value = q.respostaCorreta;
+                document.getElementById('categoria').value = q.categoria;
+            } else {
+                document.getElementById('modalTitle').innerText = 'Nova Questão';
+                document.getElementById('questaoId').value = '';
+                document.getElementById('enunciado').value = '';
+                document.getElementById('alternativaA').value = '';
+                document.getElementById('alternativaB').value = '';
+                document.getElementById('alternativaC').value = '';
+                document.getElementById('alternativaD').value = '';
+                document.getElementById('respostaCorreta').value = 'A';
+                document.getElementById('categoria').value = '';
+            }
+        }
+
+        function salvarQuestao() {
+            const id = document.getElementById('questaoId').value;
+            const questao = {
+                id: id ? parseInt(id) : Date.now(),
+                enunciado: document.getElementById('enunciado').value,
+                alternativaA: document.getElementById('alternativaA').value,
+                alternativaB: document.getElementById('alternativaB').value,
+                alternativaC: document.getElementById('alternativaC').value,
+                alternativaD: document.getElementById('alternativaD').value,
+                respostaCorreta: document.getElementById('respostaCorreta').value,
+                categoria: document.getElementById('categoria').value || 'Geral'
+            };
+            if (id) { const index = questoes.findIndex(q => q.id == id); questoes[index] = questao; }
+            else { questoes.push(questao); }
+            salvarQuestoes();
+            fecharModal();
+            listarQuestoes();
+        }
+
+        function editarQuestao(id) { abrirModalQuestao(id); }
+        function excluirQuestao(id) { if (confirm('Excluir esta questão?')) { questoes = questoes.filter(q => q.id !== id); salvarQuestoes(); listarQuestoes(); } }
+        function fecharModal() { document.getElementById('modalQuestao').style.display = 'none'; }
+        function fecharModalProva() { document.getElementById('modalProva').style.display = 'none'; }
+
+        // Importação em lote
+        function importarQuestoesLote() {
+            const texto = prompt(`Cole as questões no formato:
+Exemplo:
+1. Qual é a capital do Brasil?
+A) São Paulo
+B) Rio de Janeiro
+C) Brasília
+D) Salvador
+RESPOSTA: C
+
+2. Quem escreveu Dom Casmurro?
+A) Machado de Assis
+B) José de Alencar
+RESPOSTA: A`);
+            if (!texto) return;
+            const linhas = texto.split('\n');
+            let novasQuestoes = [];
+            let questaoAtual = null;
+            for (let i = 0; i < linhas.length; i++) {
+                let linha = linhas[i].trim();
+                const numMatch = linha.match(/^(\d+)\.\s*(.+)/);
+                if (numMatch) {
+                    if (questaoAtual) novasQuestoes.push(questaoAtual);
+                    questaoAtual = { id: Date.now() + Math.random(), enunciado: numMatch[2], alternativaA: '', alternativaB: '', alternativaC: '', alternativaD: '', respostaCorreta: 'A', categoria: 'Geral' };
+                } else if (linha.match(/^[A-D]\)\s*(.+)/) && questaoAtual) {
+                    const letra = linha[0];
+                    const textoAlt = linha.substring(2).trim();
+                    questaoAtual[`alternativa${letra}`] = textoAlt;
+                } else if (linha.toUpperCase().startsWith('RESPOSTA:') && questaoAtual) {
+                    questaoAtual.respostaCorreta = linha.substring(9).trim().toUpperCase();
+                }
+            }
+            if (questaoAtual) novasQuestoes.push(questaoAtual);
+            if (novasQuestoes.length > 0 && confirm(`${novasQuestoes.length} questões detectadas. Importar?`)) {
+                questoes.push(...novasQuestoes);
+                salvarQuestoes();
+                listarQuestoes();
+                alert(`${novasQuestoes.length} questões importadas!`);
+            } else alert('Nenhuma questão detectada.');
+        }
+
+        function mostrarFormularioMultiplo() { document.getElementById('formularioMultiplo').style.display = 'block'; }
+        function fecharFormularioMultiplo() { document.getElementById('formularioMultiplo').style.display = 'none'; document.getElementById('multiplasQuestoesContainer').innerHTML = ''; }
+        
+        function limparTodasQuestoesPendentes() {
+            if (confirm('⚠️ Tem certeza? Isso irá remover TODAS as questões pendentes.')) {
+                document.getElementById('multiplasQuestoesContainer').innerHTML = '';
+            }
+        }
+        
+        function adicionarMultiplasQuestoes(quantidade) {
+            const container = document.getElementById('multiplasQuestoesContainer');
+            for (let i = 0; i < quantidade; i++) {
+                const idx = container.children.length + 1;
+                const div = document.createElement('div');
+                div.className = 'questao-multipla';
+                div.innerHTML = `<h4>Questão ${idx}</h4>
+                    <textarea placeholder="Enunciado" class="mult-enunciado" rows="2" style="width:100%; padding:8px; margin:5px 0;"></textarea>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <input placeholder="A) " class="mult-altA"><input placeholder="B) " class="mult-altB">
+                        <input placeholder="C) " class="mult-altC"><input placeholder="D) " class="mult-altD">
+                    </div>
+                    <select class="mult-resposta" style="width:100%; padding:8px; margin:5px 0;"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+                    <input placeholder="Categoria" class="mult-categoria" style="width:100%; padding:8px;">
+                    <button class="btn btn-danger" onclick="this.parentElement.remove()">Remover</button>`;
+                container.appendChild(div);
+            }
+        }
+
+        function salvarMultiplasQuestoes() {
+            const divs = document.querySelectorAll('.questao-multipla');
+            const novas = [];
+            divs.forEach(div => {
+                const enunciado = div.querySelector('.mult-enunciado').value;
+                if (enunciado.trim()) {
+                    novas.push({
+                        id: Date.now() + Math.random(),
+                        enunciado: enunciado,
+                        alternativaA: div.querySelector('.mult-altA').value,
+                        alternativaB: div.querySelector('.mult-altB').value,
+                        alternativaC: div.querySelector('.mult-altC').value,
+                        alternativaD: div.querySelector('.mult-altD').value,
+                        respostaCorreta: div.querySelector('.mult-resposta').value,
+                        categoria: div.querySelector('.mult-categoria').value || 'Geral'
+                    });
+                }
+            });
+            if (novas.length > 0) {
+                questoes.push(...novas);
+                salvarQuestoes();
+                listarQuestoes();
+                fecharFormularioMultiplo();
+                alert(`${novas.length} questões adicionadas!`);
+            } else alert('Nenhuma questão preenchida.');
+        }
+
+        // DeepSeek
+        function abrirDeepSeekDireto() {
+            mostrarModalDeepSeekForm();
+        }
+        
+        function fecharModalDeepSeek() {
+            document.getElementById('modalDeepSeekSemApp').style.display = 'none';
+        }
+        
+        function baixarDeepSeek() {
+            window.open('https://play.google.com/store/apps/details?id=com.deepseek.chat', '_blank');
+            fecharModalDeepSeek();
+        }
+        
+        function mostrarModalDeepSeekForm() {
+            document.getElementById('modalDeepSeekForm').style.display = 'flex';
+            document.getElementById('iaAssunto').value = '';
+            document.getElementById('iaSerie').value = '';
+            document.getElementById('iaQuantidade').value = '5';
+            document.querySelector('input[name="iaNivel"][value="Médio"]').checked = true;
+        }
+        
+        function fecharModalDeepSeekForm() {
+            document.getElementById('modalDeepSeekForm').style.display = 'none';
+        }
+        
+        function gerarPromptDeepSeek() {
+            const assunto = document.getElementById('iaAssunto').value.trim();
+            const serie = document.getElementById('iaSerie').value.trim();
+            const nivel = document.querySelector('input[name="iaNivel"]:checked').value;
+            const quantidade = document.getElementById('iaQuantidade').value;
+            
+            if (!assunto || !serie) {
+                alert('Por favor, preencha o assunto e a série!');
+                return;
+            }
+            
+            const prompt = `Crie ${quantidade} questões de múltipla escolha sobre ${assunto} para ${serie}, nível ${nivel}.
+
+Formato para cada questão:
+[numero]. [ENUNCIADO DA QUESTÃO]
+A) [alternativa A]
+B) [alternativa B]
+C) [alternativa C]
+D) [alternativa D]
+RESPOSTA: [letra correta]
+
+--- IMPORTANTE ---
+Após gerar as questões, copie todo o texto e cole no campo "Importar lote (texto)" do nosso app.`;
+            
+            const encodedPrompt = encodeURIComponent(prompt);
+            window.location.href = `deepseek://chat?q=${encodedPrompt}`;
+            
+            setTimeout(() => {
+                window.open(`https://chat.deepseek.com/?q=${encodedPrompt}`, '_blank');
+            }, 1000);
+            
+            fecharModalDeepSeekForm();
+            alert('✅ DeepSeek será aberto! Após gerar as questões, copie o texto e use "Importar lote (texto)" no app.');
+        }
+
+        // Provas
+        function listarQuestoesDisponiveis() {
+            if (questoes.length === 0) {
+                document.getElementById('questoesDisponiveis').innerHTML = '<p style="color: red;">⚠️ Nenhuma questão cadastrada. Crie questões primeiro!</p>';
+                return;
+            }
+            let html = `<h4>Selecione as questões:</h4>`;
+            questoes.forEach(q => {
+                html += `<div style="margin:10px 0;"><label><input type="checkbox" class="selecionarQuestao" value="${q.id}"> ${q.enunciado.substring(0, 80)}... (${q.categoria})</label></div>`;
+            });
+            html += `<div id="totalSelecionadas" style="margin:10px 0; font-weight:bold;"></div>`;
+            document.getElementById('questoesDisponiveis').innerHTML = html;
+            const checkboxes = document.querySelectorAll('.selecionarQuestao');
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    document.getElementById('totalSelecionadas').innerHTML = `Selecionadas: ${document.querySelectorAll('.selecionarQuestao:checked').length}`;
+                });
+            });
+        }
+
+        function gerarProva() {
+            const nome = document.getElementById('nomeProva').value.trim();
+            const selecionadas = [...document.querySelectorAll('.selecionarQuestao:checked')].map(cb => parseInt(cb.value));
+            if (!nome || selecionadas.length === 0) { alert('Preencha o nome e selecione questões!'); return; }
+            provas.push({
+                id: Date.now(), nome: nome, data: new Date().toLocaleDateString(),
+                questoesIds: selecionadas, questoes: questoes.filter(q => selecionadas.includes(q.id))
+            });
+            salvarProvas();
+            alert('Prova gerada!');
+            document.getElementById('nomeProva').value = '';
+            mostrarView('minhasProvas');
+        }
+
+        function listarProvas() {
+            if (provas.length === 0) {
+                document.getElementById('listaProvas').innerHTML = '<p>Nenhuma prova gerada ainda.</p>';
+                return;
+            }
+            const html = `<table><thead><tr><th>Nome</th><th>Data</th><th>Questões</th><th>Ações</th></tr></thead><tbody>
+                ${provas.map(p => `<tr><td>${p.nome}</td><td>${p.data}</td><td>${p.questoesIds.length}</td>
+                <td><button class="btn btn-primary" onclick="visualizarProva(${p.id})">Visualizar</button>
+                <button class="btn btn-danger" onclick="excluirProva(${p.id})">Excluir</button></td></tr>`).join('')}
+            </tbody></table>`;
+            document.getElementById('listaProvas').innerHTML = html;
+        }
+
+        function visualizarProva(id) {
+            const prova = provas.find(p => p.id === id);
+            if (!prova) return;
+            provaAtualCompartilhar = prova;
+            
+            let html = `<h4>${prova.nome}</h4><p>Data: ${prova.data}</p><hr>`;
+            prova.questoes.forEach((q, idx) => {
+                html += `<div style="margin:20px 0;"><strong>${idx+1}. ${q.enunciado}</strong><br>
+                        a) ${q.alternativaA || 'Não informada'}<br>
+                        b) ${q.alternativaB || 'Não informada'}<br>
+                        c) ${q.alternativaC || 'Não informada'}<br>
+                        d) ${q.alternativaD || 'Não informada'}<br></div><hr>`;
+            });
+            document.getElementById('visualizarProva').innerHTML = html;
+            document.getElementById('modalProva').style.display = 'flex';
+            
+            const gabarito = prova.questoes.map(q => q.respostaCorreta).join('');
+            document.getElementById('qrcode').innerHTML = '';
+            new QRCode(document.getElementById('qrcode'), { 
+                text: JSON.stringify({ id: prova.id, nome: prova.nome, gabarito: gabarito }), 
+                width: 200, 
+                height: 200 
+            });
+        }
+
+        function visualizarProvaAba() {
+            if (!provaAtualCompartilhar) return;
+            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${provaAtualCompartilhar.nome}</title>
+            <style>body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;}h1{text-align:center;}hr{margin:20px 0;}</style></head>
+            <body><h1>${provaAtualCompartilhar.nome}</h1><p>Data: ${provaAtualCompartilhar.data}</p><hr>`;
+            provaAtualCompartilhar.questoes.forEach((q, idx) => {
+                html += `<div><strong>${idx+1}. ${q.enunciado}</strong><br>
+                        a) ${q.alternativaA}<br>b) ${q.alternativaB}<br>c) ${q.alternativaC}<br>d) ${q.alternativaD}<br></div><hr>`;
+            });
+            html += `<div style="text-align:center; margin-top:50px;"><p>Aluno: ______________________________</p><p>Data: ___/___/___</p></div></body></html>`;
+            const novaJanela = window.open();
+            novaJanela.document.write(html);
+            novaJanela.document.close();
+        }
+
+        function compartilharProva() {
+            if (!provaAtualCompartilhar) return;
+            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${provaAtualCompartilhar.nome}</title>
+            <style>body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;}</style></head>
+            <body><h1>${provaAtualCompartilhar.nome}</h1><p>Data: ${provaAtualCompartilhar.data}</p><hr>`;
+            provaAtualCompartilhar.questoes.forEach((q, idx) => {
+                html += `<div><strong>${idx+1}. ${q.enunciado}</strong><br>
+                        a) ${q.alternativaA}<br>b) ${q.alternativaB}<br>c) ${q.alternativaC}<br>d) ${q.alternativaD}<br></div><hr>`;
+            });
+            html += `</body></html>`;
+            
+            const blob = new Blob([html], { type: 'text/html' });
+            const file = new File([blob], `${provaAtualCompartilhar.nome}.html`, { type: 'text/html' });
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: provaAtualCompartilhar.nome,
+                    files: [file]
+                }).catch(err => console.log('Erro ao compartilhar:', err));
+            } else {
+                // Fallback: mostrar texto para copiar
+                const textoProva = provaAtualCompartilhar.questoes.map((q, idx) => {
+                    return `${idx+1}. ${q.enunciado}\na) ${q.alternativaA}\nb) ${q.alternativaB}\nc) ${q.alternativaC}\nd) ${q.alternativaD}`;
+                }).join('\n\n');
+                
+                const mensagem = `*${provaAtualCompartilhar.nome}*\nData: ${provaAtualCompartilhar.data}\n\n${textoProva}`;
+                
+                if (confirm('Seu navegador não suporta compartilhamento direto. Deseja copiar a prova para colar no WhatsApp?')) {
+                    navigator.clipboard.writeText(mensagem);
+                    alert('✅ Prova copiada! Cole no WhatsApp ou onde preferir.');
+                }
+            }
+        }
+
+        function baixarPDFProva() {
+            if (!provaAtualCompartilhar) return;
+            
+            // Usar jsPDF para gerar PDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 20;
+            
+            doc.setFontSize(18);
+            doc.text(provaAtualCompartilhar.nome, 20, y);
+            y += 10;
+            doc.setFontSize(10);
+            doc.text(`Data: ${provaAtualCompartilhar.data}`, 20, y);
+            y += 15;
+            
+            provaAtualCompartilhar.questoes.forEach((q, idx) => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+                doc.setFontSize(12);
+                doc.text(`${idx+1}. ${q.enunciado}`, 20, y);
+                y += 8;
+                doc.setFontSize(10);
+                doc.text(`a) ${q.alternativaA || 'Não informada'}`, 25, y);
+                y += 6;
+                doc.text(`b) ${q.alternativaB || 'Não informada'}`, 25, y);
+                y += 6;
+                doc.text(`c) ${q.alternativaC || 'Não informada'}`, 25, y);
+                y += 6;
+                doc.text(`d) ${q.alternativaD || 'Não informada'}`, 25, y);
+                y += 12;
+            });
+            
+            doc.save(`${provaAtualCompartilhar.nome}.pdf`);
+            alert('✅ PDF baixado! Verifique a pasta de Downloads do seu celular.');
+        }
+
+        function excluirProva(id) { if (confirm('Excluir prova?')) { provas = provas.filter(p => p.id !== id); salvarProvas(); listarProvas(); } }
+
+        // Correção
+        let scannerAtivo = false;
+        let html5QrCode = null;
+        
+        function iniciarScanner() {
+            if (scannerAtivo) return;
+            scannerAtivo = true;
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+                html5QrCode.stop();
+                scannerAtivo = false;
+                try {
+                    const dados = JSON.parse(decodedText);
+                    const prova = provas.find(p => p.id === dados.id);
+                    if (prova) {
+                        document.getElementById('resultadoCorrecao').innerHTML = `
+                            <div style="background:#d4edda; padding:15px; border-radius:10px;">
+                                <strong>Prova: ${prova.nome}</strong><br>Gabarito: ${dados.gabarito}<hr>
+                                <label>Respostas do aluno:</label>
+                                <input type="text" id="respostasAluno" placeholder="Ex: A B C D A" style="width:100%; padding:10px; margin:10px 0;">
+                                <button class="btn btn-primary" onclick="calcularNota('${dados.gabarito}')">Calcular Nota</button>
+                            </div>`;
+                    } else alert('Prova não encontrada no banco de dados!');
+                } catch(e) { alert('QR Code inválido!'); }
+            }).catch(err => { alert('Erro na câmera: ' + err); scannerAtivo = false; });
+        }
+
+        function calcularNota(gabaritoString) {
+            const respostas = document.getElementById('respostasAluno').value.toUpperCase().replace(/\s/g, '').split('');
+            const gabarito = gabaritoString.split('');
+            let acertos = 0;
+            for (let i = 0; i < Math.min(respostas.length, gabarito.length); i++) if (respostas[i] === gabarito[i]) acertos++;
+            const nota = (acertos / gabarito.length) * 10;
+            document.getElementById('resultadoCorrecao').innerHTML += `<div style="background:#d1ecf1; margin-top:15px; padding:15px; border-radius:10px;">
+                Acertos: ${acertos}/${gabarito.length}<br><strong style="font-size:24px;">Nota: ${nota.toFixed(1)}</strong></div>`;
+        }
+
+        window.onload = () => {
+            if (localStorage.getItem('senha_professor')) document.getElementById('primeiroAcessoMsg').innerHTML = 'Digite sua senha para acessar.';
+            else document.getElementById('primeiroAcessoMsg').innerHTML = 'Primeiro acesso: crie uma senha (mínimo 4 dígitos).';
+        };
+    </script>
+</body>
+</html>
