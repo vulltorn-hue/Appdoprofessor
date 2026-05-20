@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -194,6 +195,7 @@
             display: flex;
             gap: 15px;
             margin-top: 5px;
+            flex-wrap: wrap;
         }
 
         .radio-group label {
@@ -201,6 +203,22 @@
             align-items: center;
             gap: 5px;
             font-weight: normal;
+        }
+
+        .modelo-preview {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modelo-preview:hover { border-color: #2a5298; background: #f0f0f0; }
+        .modelo-preview.selecionado { border-color: #28a745; background: #e8f5e9; }
+
+        .chart-container {
+            max-width: 400px;
+            margin: 20px auto;
         }
 
         @media (max-width: 768px) {
@@ -255,6 +273,16 @@
                         <h3>Corrigir Prova</h3>
                         <p>Leitura de QR Code</p>
                     </div>
+                    <div class="dashboard-item" onclick="mostrarView('historico')">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>Histórico</h3>
+                        <p>Notas e estatísticas</p>
+                    </div>
+                    <div class="dashboard-item" onclick="mostrarView('configuracoes')">
+                        <i class="fas fa-sliders-h"></i>
+                        <h3>Configurações</h3>
+                        <p>Layout e preferências</p>
+                    </div>
                 </div>
             </div>
 
@@ -265,7 +293,7 @@
                     <button class="btn btn-primary" onclick="abrirModalQuestao()">➕ 1 Questão</button>
                     <button class="btn btn-success" onclick="importarQuestoesLote()">📋 Importar lote (texto)</button>
                     <button class="btn btn-info" onclick="mostrarFormularioMultiplo()">📝 Adicionar 5/10/15/20</button>
-                    <button class="btn btn-warning" onclick="abrirDeepSeekDireto()">🤖 Gerar com IA</button>
+                    <button class="btn btn-warning" onclick="abrirDeepSeek()">🤖 Gerar com IA</button>
                 </div>
                 
                 <div id="formularioMultiplo" style="display: none; margin-top: 20px;">
@@ -296,6 +324,64 @@
                     <label>Nome da Prova:</label>
                     <input type="text" id="nomeProva" placeholder="Ex: Prova Matemática - P1 2025">
                 </div>
+                
+                <div class="form-group">
+                    <label>Modelo de Layout:</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px;">
+                        <div class="modelo-preview" onclick="selecionarModelo('classico')" id="modelo-classico">
+                            <i class="fas fa-align-left"></i> Clássico<br>
+                            <small>Linhas simples</small>
+                        </div>
+                        <div class="modelo-preview" onclick="selecionarModelo('retangulo')" id="modelo-retangulo">
+                            <i class="fas fa-square"></i> Retângulo<br>
+                            <small>Bordas arredondadas</small>
+                        </div>
+                        <div class="modelo-preview" onclick="selecionarModelo('moldura')" id="modelo-moldura">
+                            <i class="fas fa-border-all"></i> Moldura<br>
+                            <small>Prova emoldurada</small>
+                        </div>
+                        <div class="modelo-preview" onclick="selecionarModelo('moderno')" id="modelo-moderno">
+                            <i class="fas fa-palette"></i> Moderno<br>
+                            <small>Sombra e estilo</small>
+                        </div>
+                        <div class="modelo-preview" onclick="selecionarModelo('cartao')" id="modelo-cartao">
+                            <i class="fas fa-check-square"></i> Cartão<br>
+                            <small>Bolinhas A/B/C/D</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Posição do Cartão-Resposta:</label>
+                    <select id="posicaoCartao">
+                        <option value="cabecalho">No cabeçalho (topo da prova)</option>
+                        <option value="abaixo">Abaixo do cabeçalho</option>
+                        <option value="final" selected>No final da prova</option>
+                        <option value="junto">Junto com cada questão</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Versões da Prova (evitar cola):</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="tipoVersao" value="original" checked> Versão única (original)</label>
+                        <label><input type="radio" name="tipoVersao" value="embaralharQuestoes"> Questões embaralhadas</label>
+                        <label><input type="radio" name="tipoVersao" value="embaralharAlternativas"> Alternativas embaralhadas</label>
+                        <label><input type="radio" name="tipoVersao" value="tudoDiferente"> Tudo diferente</label>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label>Número de versões: <input type="number" id="numVersoes" min="1" max="10" value="2" style="width:80px;"></label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Cabeçalho da Prova:</label>
+                    <input type="text" id="cabecalhoEscola" placeholder="Escola" value="Escola Municipal">
+                    <input type="text" id="cabecalhoDisciplina" placeholder="Disciplina" value="Matemática" style="margin-top:5px;">
+                    <input type="text" id="cabecalhoProfessor" placeholder="Professor" value="Professor" style="margin-top:5px;">
+                    <input type="text" id="cabecalhoTurma" placeholder="Turma" value="6º Ano" style="margin-top:5px;">
+                </div>
+                
                 <div id="questoesDisponiveis"></div>
                 <button class="btn btn-primary" onclick="gerarProva()">Gerar Prova</button>
                 <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
@@ -314,6 +400,55 @@
                 <button class="btn btn-primary" onclick="iniciarScanner()">📷 Ler QR Code da Prova</button>
                 <div id="reader" style="margin-top:20px;"></div>
                 <div id="resultadoCorrecao" style="margin-top:20px;"></div>
+                <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
+            </div>
+            
+            <!-- Histórico -->
+            <div id="historicoView" style="display: none;" class="card">
+                <h3><i class="fas fa-chart-line"></i> Histórico de Correções</h3>
+                <div id="graficoContainer" class="chart-container">
+                    <canvas id="graficoNotas"></canvas>
+                </div>
+                <div id="estatisticasQuestoes"></div>
+                <div id="listaCorrecoes"></div>
+                <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="exportarExcel()">📥 Exportar Excel</button>
+                    <button class="btn btn-info" onclick="compartilharHistorico()">📤 Compartilhar</button>
+                    <button class="btn btn-danger" onclick="limparHistorico()">🗑️ Limpar Histórico</button>
+                </div>
+                <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
+            </div>
+            
+            <!-- Configurações -->
+            <div id="configuracoesView" style="display: none;" class="card">
+                <h3><i class="fas fa-sliders-h"></i> Configurações</h3>
+                <div class="form-group">
+                    <label>Modelo de Prova Padrão:</label>
+                    <select id="configModelo">
+                        <option value="classico">Clássico</option>
+                        <option value="retangulo">Retângulo</option>
+                        <option value="moldura">Moldura</option>
+                        <option value="moderno">Moderno</option>
+                        <option value="cartao">Cartão</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Posição do Cartão-Resposta Padrão:</label>
+                    <select id="configPosicaoCartao">
+                        <option value="cabecalho">No cabeçalho</option>
+                        <option value="abaixo">Abaixo do cabeçalho</option>
+                        <option value="final">No final da prova</option>
+                        <option value="junto">Junto com cada questão</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Dados do Professor:</label>
+                    <input type="text" id="configEscola" placeholder="Escola">
+                    <input type="text" id="configDisciplina" placeholder="Disciplina" style="margin-top:5px;">
+                    <input type="text" id="configProfessor" placeholder="Professor" style="margin-top:5px;">
+                    <input type="text" id="configTurma" placeholder="Turma padrão" style="margin-top:5px;">
+                </div>
+                <button class="btn btn-primary" onclick="salvarConfiguracoes()">💾 Salvar Configurações</button>
                 <button class="btn btn-warning" onclick="mostrarView('dashboard')">← Voltar</button>
             </div>
         </div>
@@ -352,30 +487,12 @@
                     <button class="btn btn-info" onclick="baixarPDFProva()">💾 Baixar PDF</button>
                 </div>
             </div>
-            <button class="btn btn-warning" onclick="fecharModalProva()" style="width: 100%;">← Voltar para Provas</button>
+            <button class="btn btn-warning" onclick="fecharModalProva()">← Voltar para Provas</button>
         </div>
     </div>
-
-    <!-- Modal DeepSeek - App não instalado -->
-    <div id="modalDeepSeekSemApp" class="modal">
-        <div class="modal-content">
-            <h3><i class="fab fa-android"></i> DeepSeek não encontrado</h3>
-            <p style="margin: 15px 0;">Para gerar questões com IA, você precisa instalar o DeepSeek no seu celular.</p>
-            <p style="margin: 10px 0; background: #f0f0f0; padding: 10px; border-radius: 8px;">
-                <i class="fas fa-download"></i> <strong>DeepSeek</strong> - Assistente de IA gratuito
-            </p>
-            <button class="btn btn-primary" onclick="baixarDeepSeek()" style="width: 100%; margin: 5px 0;">
-                📥 BAIXAR DA GOOGLE PLAY
-            </button>
-            <button class="btn btn-warning" onclick="fecharModalDeepSeek()" style="width: 100%;">
-                🔁 Tentar novamente
-            </button>
-            <button class="btn btn-danger" onclick="fecharModalDeepSeek()" style="width: 100%;">❌ Cancelar</button>
-        </div>
-    </div>
-
-    <!-- Modal DeepSeek - Formulário para gerar questões -->
-    <div id="modalDeepSeekForm" class="modal">
+    
+    <!-- Modal DeepSeek -->
+    <div id="modalDeepSeek" class="modal">
         <div class="modal-content">
             <h3><i class="fas fa-robot"></i> Gerar questões com DeepSeek</h3>
             <div class="form-group">
@@ -398,10 +515,8 @@
                 <label>Quantidade de questões:</label>
                 <input type="number" id="iaQuantidade" min="1" max="50" value="5">
             </div>
-            <button class="btn btn-primary" onclick="gerarPromptDeepSeek()" style="width: 100%; margin-top: 10px;">
-                🚀 GERAR E ABRIR DEEPSEEK
-            </button>
-            <button class="btn btn-danger" onclick="fecharModalDeepSeekForm()" style="width: 100%; margin-top: 10px;">Cancelar</button>
+            <button class="btn btn-primary" onclick="gerarPromptDeepSeek()" style="width: 100%; margin-top: 10px;">🚀 GERAR E ABRIR DEEPSEEK</button>
+            <button class="btn btn-danger" onclick="fecharModalDeepSeek()" style="width: 100%; margin-top: 10px;">Cancelar</button>
         </div>
     </div>
 
@@ -409,14 +524,32 @@
         // Dados
         let questoes = [];
         let provas = [];
+        let historicoCorrecoes = [];
+        let configuracoes = {
+            modelo: 'classico',
+            posicaoCartao: 'final',
+            escola: 'Escola Municipal',
+            disciplina: 'Matemática',
+            professor: 'Professor',
+            turma: '6º Ano'
+        };
         let provaAtualCompartilhar = null;
+        let scannerAtivo = false;
+        let html5QrCode = null;
+        let graficoChart = null;
 
         // Carregar dados
         function carregarDados() {
             const storedQuestoes = localStorage.getItem('questoes');
             const storedProvas = localStorage.getItem('provas');
+            const storedHistorico = localStorage.getItem('historicoCorrecoes');
+            const storedConfig = localStorage.getItem('configuracoes');
+            
             if (storedQuestoes) questoes = JSON.parse(storedQuestoes);
             if (storedProvas) provas = JSON.parse(storedProvas);
+            if (storedHistorico) historicoCorrecoes = JSON.parse(storedHistorico);
+            if (storedConfig) configuracoes = JSON.parse(storedConfig);
+            
             if (questoes.length === 0) {
                 questoes = [
                     { id: 1, enunciado: "Qual é a capital do Brasil?", alternativaA: "São Paulo", alternativaB: "Rio de Janeiro", alternativaC: "Brasília", alternativaD: "Salvador", respostaCorreta: "C", categoria: "Geografia" },
@@ -424,11 +557,34 @@
                 ];
                 salvarQuestoes();
             }
+            
+            // Aplicar configurações salvas nos campos
+            document.getElementById('configModelo').value = configuracoes.modelo;
+            document.getElementById('configPosicaoCartao').value = configuracoes.posicaoCartao;
+            document.getElementById('configEscola').value = configuracoes.escola;
+            document.getElementById('configDisciplina').value = configuracoes.disciplina;
+            document.getElementById('configProfessor').value = configuracoes.professor;
+            document.getElementById('configTurma').value = configuracoes.turma;
+            
             atualizarContadores();
+        }
+        
+        function salvarConfiguracoes() {
+            configuracoes.modelo = document.getElementById('configModelo').value;
+            configuracoes.posicaoCartao = document.getElementById('configPosicaoCartao').value;
+            configuracoes.escola = document.getElementById('configEscola').value;
+            configuracoes.disciplina = document.getElementById('configDisciplina').value;
+            configuracoes.professor = document.getElementById('configProfessor').value;
+            configuracoes.turma = document.getElementById('configTurma').value;
+            localStorage.setItem('configuracoes', JSON.stringify(configuracoes));
+            alert('Configurações salvas!');
+            mostrarView('dashboard');
         }
 
         function salvarQuestoes() { localStorage.setItem('questoes', JSON.stringify(questoes)); }
         function salvarProvas() { localStorage.setItem('provas', JSON.stringify(provas)); atualizarContadores(); }
+        function salvarHistorico() { localStorage.setItem('historicoCorrecoes', JSON.stringify(historicoCorrecoes)); atualizarGrafico(); }
+        
         function atualizarContadores() {
             if (document.getElementById('totalQuestoes')) {
                 document.getElementById('totalQuestoes').innerText = questoes.length + ' questões';
@@ -467,13 +623,34 @@
         }
 
         function mostrarView(view) {
-            const views = ['dashboardView', 'questoesView', 'gerarProvaView', 'minhasProvasView', 'corrigirView'];
+            const views = ['dashboardView', 'questoesView', 'gerarProvaView', 'minhasProvasView', 'corrigirView', 'historicoView', 'configuracoesView'];
             views.forEach(v => { document.getElementById(v).style.display = 'none'; });
             if (view === 'dashboard') document.getElementById('dashboardView').style.display = 'block';
             else if (view === 'questoes') { document.getElementById('questoesView').style.display = 'block'; listarQuestoes(); }
-            else if (view === 'gerarProva') { document.getElementById('gerarProvaView').style.display = 'block'; listarQuestoesDisponiveis(); }
+            else if (view === 'gerarProva') { 
+                document.getElementById('gerarProvaView').style.display = 'block'; 
+                listarQuestoesDisponiveis();
+                // Carregar configurações salvas no formulário
+                document.getElementById('cabecalhoEscola').value = configuracoes.escola;
+                document.getElementById('cabecalhoDisciplina').value = configuracoes.disciplina;
+                document.getElementById('cabecalhoProfessor').value = configuracoes.professor;
+                document.getElementById('cabecalhoTurma').value = configuracoes.turma;
+                selecionarModelo(configuracoes.modelo);
+                document.getElementById('posicaoCartao').value = configuracoes.posicaoCartao;
+            }
             else if (view === 'minhasProvas') { document.getElementById('minhasProvasView').style.display = 'block'; listarProvas(); }
             else if (view === 'corrigir') document.getElementById('corrigirView').style.display = 'block';
+            else if (view === 'historico') { document.getElementById('historicoView').style.display = 'block'; atualizarHistorico(); }
+            else if (view === 'configuracoes') document.getElementById('configuracoesView').style.display = 'block';
+        }
+        
+        function selecionarModelo(modelo) {
+            const modelos = ['classico', 'retangulo', 'moldura', 'moderno', 'cartao'];
+            modelos.forEach(m => {
+                const el = document.getElementById(`modelo-${m}`);
+                if (el) el.classList.remove('selecionado');
+            });
+            document.getElementById(`modelo-${modelo}`).classList.add('selecionado');
         }
 
         // CRUD Questões
@@ -638,29 +815,12 @@ RESPOSTA: A`);
         }
 
         // DeepSeek
-        function abrirDeepSeekDireto() {
-            mostrarModalDeepSeekForm();
+        function abrirDeepSeek() {
+            document.getElementById('modalDeepSeek').style.display = 'flex';
         }
         
         function fecharModalDeepSeek() {
-            document.getElementById('modalDeepSeekSemApp').style.display = 'none';
-        }
-        
-        function baixarDeepSeek() {
-            window.open('https://play.google.com/store/apps/details?id=com.deepseek.chat', '_blank');
-            fecharModalDeepSeek();
-        }
-        
-        function mostrarModalDeepSeekForm() {
-            document.getElementById('modalDeepSeekForm').style.display = 'flex';
-            document.getElementById('iaAssunto').value = '';
-            document.getElementById('iaSerie').value = '';
-            document.getElementById('iaQuantidade').value = '5';
-            document.querySelector('input[name="iaNivel"][value="Médio"]').checked = true;
-        }
-        
-        function fecharModalDeepSeekForm() {
-            document.getElementById('modalDeepSeekForm').style.display = 'none';
+            document.getElementById('modalDeepSeek').style.display = 'none';
         }
         
         function gerarPromptDeepSeek() {
@@ -694,7 +854,7 @@ Após gerar as questões, copie todo o texto e cole no campo "Importar lote (tex
                 window.open(`https://chat.deepseek.com/?q=${encodedPrompt}`, '_blank');
             }, 1000);
             
-            fecharModalDeepSeekForm();
+            fecharModalDeepSeek();
             alert('✅ DeepSeek será aberto! Após gerar as questões, copie o texto e use "Importar lote (texto)" no app.');
         }
 
@@ -718,16 +878,79 @@ Após gerar as questões, copie todo o texto e cole no campo "Importar lote (tex
             });
         }
 
+        function embaralharArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
         function gerarProva() {
             const nome = document.getElementById('nomeProva').value.trim();
             const selecionadas = [...document.querySelectorAll('.selecionarQuestao:checked')].map(cb => parseInt(cb.value));
+            const modelo = configuracoes.modelo;
+            const posicaoCartao = document.getElementById('posicaoCartao').value;
+            const tipoVersao = document.querySelector('input[name="tipoVersao"]:checked').value;
+            const numVersoes = parseInt(document.getElementById('numVersoes').value);
+            
             if (!nome || selecionadas.length === 0) { alert('Preencha o nome e selecione questões!'); return; }
-            provas.push({
-                id: Date.now(), nome: nome, data: new Date().toLocaleDateString(),
-                questoesIds: selecionadas, questoes: questoes.filter(q => selecionadas.includes(q.id))
-            });
+            
+            let questoesBase = questoes.filter(q => selecionadas.includes(q.id));
+            const questoesPorVersao = [];
+            
+            for (let v = 0; v < numVersoes; v++) {
+                let questoesVersao = [...questoesBase];
+                
+                if (tipoVersao === 'embaralharQuestoes' || tipoVersao === 'tudoDiferente') {
+                    questoesVersao = embaralharArray([...questoesVersao]);
+                }
+                
+                if (tipoVersao === 'embaralharAlternativas' || tipoVersao === 'tudoDiferente') {
+                    questoesVersao = questoesVersao.map(q => {
+                        const alternativas = [
+                            { letra: 'A', texto: q.alternativaA },
+                            { letra: 'B', texto: q.alternativaB },
+                            { letra: 'C', texto: q.alternativaC },
+                            { letra: 'D', texto: q.alternativaD }
+                        ];
+                        const alternativasEmbaralhadas = embaralharArray([...alternativas]);
+                        const novaQuestao = { ...q };
+                        alternativasEmbaralhadas.forEach((alt, idx) => {
+                            novaQuestao[`alternativa${String.fromCharCode(65+idx)}`] = alt.texto;
+                            if (alt.letra === q.respostaCorreta) {
+                                novaQuestao.respostaCorreta = String.fromCharCode(65+idx);
+                            }
+                        });
+                        return novaQuestao;
+                    });
+                }
+                
+                questoesPorVersao.push(questoesVersao);
+            }
+            
+            const prova = {
+                id: Date.now(),
+                nome: nome,
+                data: new Date().toLocaleDateString(),
+                questoesIds: selecionadas,
+                questoes: questoesBase,
+                questoesPorVersao: questoesPorVersao,
+                modelo: modelo,
+                posicaoCartao: posicaoCartao,
+                tipoVersao: tipoVersao,
+                cabecalho: {
+                    escola: document.getElementById('cabecalhoEscola').value,
+                    disciplina: document.getElementById('cabecalhoDisciplina').value,
+                    professor: document.getElementById('cabecalhoProfessor').value,
+                    turma: document.getElementById('cabecalhoTurma').value,
+                    data: new Date().toLocaleDateString()
+                }
+            };
+            
+            provas.push(prova);
             salvarProvas();
-            alert('Prova gerada!');
+            alert(`Prova gerada com ${numVersoes} versão(ões)!`);
             document.getElementById('nomeProva').value = '';
             mostrarView('minhasProvas');
         }
@@ -737,12 +960,107 @@ Após gerar as questões, copie todo o texto e cole no campo "Importar lote (tex
                 document.getElementById('listaProvas').innerHTML = '<p>Nenhuma prova gerada ainda.</p>';
                 return;
             }
-            const html = `<table><thead><tr><th>Nome</th><th>Data</th><th>Questões</th><th>Ações</th></tr></thead><tbody>
+            const html = `<table><thead><tr><th>Nome</th><th>Data</th><th>Questões</th><th>Versões</th><th>Ações</th></tr></thead><tbody>
                 ${provas.map(p => `<tr><td>${p.nome}</td><td>${p.data}</td><td>${p.questoesIds.length}</td>
+                <td>${p.questoesPorVersao ? p.questoesPorVersao.length : 1}</td>
                 <td><button class="btn btn-primary" onclick="visualizarProva(${p.id})">Visualizar</button>
                 <button class="btn btn-danger" onclick="excluirProva(${p.id})">Excluir</button></td></tr>`).join('')}
             </tbody></table>`;
             document.getElementById('listaProvas').innerHTML = html;
+        }
+
+        function gerarHTMLProva(prova, versao = 0) {
+            const questoesVersao = prova.questoesPorVersao ? prova.questoesPorVersao[versao] : prova.questoes;
+            const estilo = getEstiloPorModelo(prova.modelo);
+            const posicaoCartao = prova.posicaoCartao;
+            const dataAtual = new Date().toLocaleDateString();
+            
+            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${prova.nome}</title>
+            <style>${estilo}</style></head><body>
+            <div class="prova-container">`;
+            
+            // Cabeçalho
+            html += `
+                <div class="cabecalho">
+                    <h2>${prova.cabecalho.escola}</h2>
+                    <div class="info-linha">Disciplina: ${prova.cabecalho.disciplina} | Professor: ${prova.cabecalho.professor}</div>
+                    <div class="info-linha">Data: ${prova.cabecalho.data}</div>
+                    <div class="aluno-linha">Aluno: _________________________ | Turma: ${prova.cabecalho.turma}</div>
+                </div>
+                <hr>
+                <h3 style="text-align:center">${prova.nome}</h3>
+                <hr>`;
+            
+            // Cartão resposta no cabeçalho
+            if (posicaoCartao === 'cabecalho') {
+                html += gerarCartaoResposta(questoesVersao.length);
+            }
+            
+            // Questões
+            questoesVersao.forEach((q, idx) => {
+                html += `<div class="questao-item">
+                    <div class="enunciado"><strong>${idx+1}. ${q.enunciado}</strong></div>
+                    <div class="alternativas">
+                        <div>a) ${q.alternativaA || '________'}</div>
+                        <div>b) ${q.alternativaB || '________'}</div>
+                        <div>c) ${q.alternativaC || '________'}</div>
+                        <div>d) ${q.alternativaD || '________'}</div>
+                    </div>`;
+                
+                if (prova.modelo === 'cartao') {
+                    html += `<div class="cartao-resposta-questao">
+                        ${['A','B','C','D'].map(l => `<label><input type="radio" name="q${idx}"> ${l}</label>`).join('')}
+                    </div>`;
+                } else if (posicaoCartao !== 'junto') {
+                    html += `<div class="resposta-linha">Resposta: ___________</div>`;
+                } else {
+                    html += `<div class="cartao-resposta-questao">
+                        ${['A','B','C','D'].map(l => `<label><input type="radio" name="q${idx}"> ${l}</label>`).join('')}
+                    </div>`;
+                }
+                html += `</div><hr>`;
+            });
+            
+            // Cartão resposta no final
+            if (posicaoCartao === 'final') {
+                html += gerarCartaoResposta(questoesVersao.length);
+            }
+            
+            html += `<div class="gabarito-aluno" style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px;">
+                <strong>📝 GABARITO DO ALUNO</strong><br>
+                <table><th>Questão</th>${questoesVersao.map((_, i) => `<th>${i+1}</th>`).join('')} </tr>
+                <tr><th>Resposta</th>${questoesVersao.map(() => `<td>___</td>`).join('')} </tr>
+                </table></div>
+            </div></body></html>`;
+            
+            return html;
+        }
+        
+        function getEstiloPorModelo(modelo) {
+            const estilos = {
+                classico: `body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;}.questao-item{margin:20px 0;}.alternativas{margin-left:20px;}.resposta-linha{margin-top:10px;}`,
+                retangulo: `body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;}.questao-item{border:2px solid #333;border-radius:15px;padding:15px;margin:20px 0;}.alternativas{margin-left:20px;}`,
+                moldura: `body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;border:3px solid #333;border-radius:10px;}.questao-item{margin:20px;}.alternativas{margin-left:20px;}.cabecalho{text-align:center;padding:20px;border-bottom:2px solid #333;}`,
+                moderno: `body{font-family:'Segoe UI',Arial;padding:20px;max-width:800px;margin:0 auto;background:#f5f5f5;}.prova-container{background:white;border-radius:20px;padding:30px;box-shadow:0 10px 30px rgba(0,0,0,0.1);}.questao-item{margin:25px 0;padding:10px;background:#fafafa;border-radius:10px;}.alternativas{margin-left:20px;}`,
+                cartao: `body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;}.questao-item{margin:20px 0;}.cartao-resposta-questao{display:flex;gap:15px;margin-top:10px;}.cartao-resposta-questao label{display:inline-flex;align-items:center;gap:5px;}`
+            };
+            return estilos[modelo] || estilos.classico;
+        }
+        
+        function gerarCartaoResposta(numQuestoes) {
+            let html = `<div class="cartao-resposta-global" style="margin:20px 0; padding:15px; border:1px solid #ccc; border-radius:10px; background:#f9f9f9;">
+                <strong>📋 CARTÃO-RESPOSTA</strong><br>
+                <div style="display:flex; flex-wrap:wrap; gap:15px; margin-top:10px;">`;
+            for (let i = 0; i < numQuestoes; i++) {
+                html += `<div><strong>${i+1}</strong><br>
+                    <label>A<input type="radio" name="q${i}" value="A"></label>
+                    <label>B<input type="radio" name="q${i}" value="B"></label>
+                    <label>C<input type="radio" name="q${i}" value="C"></label>
+                    <label>D<input type="radio" name="q${i}" value="D"></label>
+                </div>`;
+            }
+            html += `</div></div>`;
+            return html;
         }
 
         function visualizarProva(id) {
@@ -750,14 +1068,10 @@ Após gerar as questões, copie todo o texto e cole no campo "Importar lote (tex
             if (!prova) return;
             provaAtualCompartilhar = prova;
             
-            let html = `<h4>${prova.nome}</h4><p>Data: ${prova.data}</p><hr>`;
-            prova.questoes.forEach((q, idx) => {
-                html += `<div style="margin:20px 0;"><strong>${idx+1}. ${q.enunciado}</strong><br>
-                        a) ${q.alternativaA || 'Não informada'}<br>
-                        b) ${q.alternativaB || 'Não informada'}<br>
-                        c) ${q.alternativaC || 'Não informada'}<br>
-                        d) ${q.alternativaD || 'Não informada'}<br></div><hr>`;
-            });
+            let html = `<h4>${prova.nome}</h4><p>Data: ${prova.data}</p><p>Versões: ${prova.questoesPorVersao ? prova.questoesPorVersao.length : 1}</p><hr>`;
+            html += `<p><strong>Cabeçalho:</strong><br>Escola: ${prova.cabecalho.escola}<br>Disciplina: ${prova.cabecalho.disciplina}<br>Professor: ${prova.cabecalho.professor}<br>Turma: ${prova.cabecalho.turma}</p><hr>`;
+            html += `<p><strong>Modelo:</strong> ${prova.modelo} | <strong>Cartão:</strong> ${prova.posicaoCartao}</p>`;
+            
             document.getElementById('visualizarProva').innerHTML = html;
             document.getElementById('modalProva').style.display = 'flex';
             
@@ -772,14 +1086,7 @@ Após gerar as questões, copie todo o texto e cole no campo "Importar lote (tex
 
         function visualizarProvaAba() {
             if (!provaAtualCompartilhar) return;
-            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${provaAtualCompartilhar.nome}</title>
-            <style>body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;}h1{text-align:center;}hr{margin:20px 0;}</style></head>
-            <body><h1>${provaAtualCompartilhar.nome}</h1><p>Data: ${provaAtualCompartilhar.data}</p><hr>`;
-            provaAtualCompartilhar.questoes.forEach((q, idx) => {
-                html += `<div><strong>${idx+1}. ${q.enunciado}</strong><br>
-                        a) ${q.alternativaA}<br>b) ${q.alternativaB}<br>c) ${q.alternativaC}<br>d) ${q.alternativaD}<br></div><hr>`;
-            });
-            html += `<div style="text-align:center; margin-top:50px;"><p>Aluno: ______________________________</p><p>Data: ___/___/___</p></div></body></html>`;
+            const html = gerarHTMLProva(provaAtualCompartilhar, 0);
             const novaJanela = window.open();
             novaJanela.document.write(html);
             novaJanela.document.close();
@@ -787,82 +1094,72 @@ Após gerar as questões, copie todo o texto e cole no campo "Importar lote (tex
 
         function compartilharProva() {
             if (!provaAtualCompartilhar) return;
-            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${provaAtualCompartilhar.nome}</title>
-            <style>body{font-family:Arial;padding:20px;max-width:800px;margin:0 auto;}</style></head>
-            <body><h1>${provaAtualCompartilhar.nome}</h1><p>Data: ${provaAtualCompartilhar.data}</p><hr>`;
-            provaAtualCompartilhar.questoes.forEach((q, idx) => {
-                html += `<div><strong>${idx+1}. ${q.enunciado}</strong><br>
-                        a) ${q.alternativaA}<br>b) ${q.alternativaB}<br>c) ${q.alternativaC}<br>d) ${q.alternativaD}<br></div><hr>`;
-            });
-            html += `</body></html>`;
             
-            const blob = new Blob([html], { type: 'text/html' });
-            const file = new File([blob], `${provaAtualCompartilhar.nome}.html`, { type: 'text/html' });
+            // Gerar versão simplificada para texto
+            let textoProva = `*${provaAtualCompartilhar.nome}*\n`;
+            textoProva += `Escola: ${provaAtualCompartilhar.cabecalho.escola}\n`;
+            textoProva += `Disciplina: ${provaAtualCompartilhar.cabecalho.disciplina} | Professor: ${provaAtualCompartilhar.cabecalho.professor}\n`;
+            textoProva += `Data: ${provaAtualCompartilhar.cabecalho.data}\n`;
+            textoProva += `Aluno: __________________ | Turma: ${provaAtualCompartilhar.cabecalho.turma}\n\n`;
+            textoProva += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            
+            provaAtualCompartilhar.questoes.forEach((q, idx) => {
+                textoProva += `${idx+1}. ${q.enunciado}\n`;
+                textoProva += `   a) ${q.alternativaA || '________'}\n`;
+                textoProva += `   b) ${q.alternativaB || '________'}\n`;
+                textoProva += `   c) ${q.alternativaC || '________'}\n`;
+                textoProva += `   d) ${q.alternativaD || '________'}\n`;
+                textoProva += `   Resposta: _______\n\n`;
+            });
             
             if (navigator.share) {
-                navigator.share({
-                    title: provaAtualCompartilhar.nome,
-                    files: [file]
-                }).catch(err => console.log('Erro ao compartilhar:', err));
+                navigator.share({ title: provaAtualCompartilhar.nome, text: textoProva })
+                    .catch(err => console.log('Erro:', err));
             } else {
-                // Fallback: mostrar texto para copiar
-                const textoProva = provaAtualCompartilhar.questoes.map((q, idx) => {
-                    return `${idx+1}. ${q.enunciado}\na) ${q.alternativaA}\nb) ${q.alternativaB}\nc) ${q.alternativaC}\nd) ${q.alternativaD}`;
-                }).join('\n\n');
-                
-                const mensagem = `*${provaAtualCompartilhar.nome}*\nData: ${provaAtualCompartilhar.data}\n\n${textoProva}`;
-                
-                if (confirm('Seu navegador não suporta compartilhamento direto. Deseja copiar a prova para colar no WhatsApp?')) {
-                    navigator.clipboard.writeText(mensagem);
-                    alert('✅ Prova copiada! Cole no WhatsApp ou onde preferir.');
-                }
+                navigator.clipboard.writeText(textoProva);
+                alert('✅ Prova copiada! Cole no WhatsApp ou onde preferir.');
             }
         }
 
         function baixarPDFProva() {
             if (!provaAtualCompartilhar) return;
-            
-            // Usar jsPDF para gerar PDF
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             let y = 20;
             
-            doc.setFontSize(18);
+            doc.setFontSize(16);
             doc.text(provaAtualCompartilhar.nome, 20, y);
             y += 10;
             doc.setFontSize(10);
-            doc.text(`Data: ${provaAtualCompartilhar.data}`, 20, y);
+            doc.text(`Escola: ${provaAtualCompartilhar.cabecalho.escola}`, 20, y);
+            y += 7;
+            doc.text(`Disciplina: ${provaAtualCompartilhar.cabecalho.disciplina} | Professor: ${provaAtualCompartilhar.cabecalho.professor}`, 20, y);
+            y += 7;
+            doc.text(`Data: ${provaAtualCompartilhar.cabecalho.data} | Turma: ${provaAtualCompartilhar.cabecalho.turma}`, 20, y);
+            y += 7;
+            doc.text(`Aluno: _________________________`, 20, y);
             y += 15;
             
             provaAtualCompartilhar.questoes.forEach((q, idx) => {
-                if (y > 270) {
-                    doc.addPage();
-                    y = 20;
-                }
-                doc.setFontSize(12);
+                if (y > 260) { doc.addPage(); y = 20; }
+                doc.setFontSize(11);
                 doc.text(`${idx+1}. ${q.enunciado}`, 20, y);
                 y += 8;
                 doc.setFontSize(10);
-                doc.text(`a) ${q.alternativaA || 'Não informada'}`, 25, y);
-                y += 6;
-                doc.text(`b) ${q.alternativaB || 'Não informada'}`, 25, y);
-                y += 6;
-                doc.text(`c) ${q.alternativaC || 'Não informada'}`, 25, y);
-                y += 6;
-                doc.text(`d) ${q.alternativaD || 'Não informada'}`, 25, y);
-                y += 12;
+                doc.text(`a) ${q.alternativaA || '________'}`, 25, y); y += 6;
+                doc.text(`b) ${q.alternativaB || '________'}`, 25, y); y += 6;
+                doc.text(`c) ${q.alternativaC || '________'}`, 25, y); y += 6;
+                doc.text(`d) ${q.alternativaD || '________'}`, 25, y); y += 8;
+                doc.text(`Resposta: ___________`, 25, y); y += 12;
             });
             
             doc.save(`${provaAtualCompartilhar.nome}.pdf`);
-            alert('✅ PDF baixado! Verifique a pasta de Downloads do seu celular.');
+            alert('✅ PDF baixado!');
         }
 
         function excluirProva(id) { if (confirm('Excluir prova?')) { provas = provas.filter(p => p.id !== id); salvarProvas(); listarProvas(); } }
 
         // Correção
-        let scannerAtivo = false;
-        let html5QrCode = null;
-        
         function iniciarScanner() {
             if (scannerAtivo) return;
             scannerAtivo = true;
@@ -876,24 +1173,173 @@ Após gerar as questões, copie todo o texto e cole no campo "Importar lote (tex
                     if (prova) {
                         document.getElementById('resultadoCorrecao').innerHTML = `
                             <div style="background:#d4edda; padding:15px; border-radius:10px;">
-                                <strong>Prova: ${prova.nome}</strong><br>Gabarito: ${dados.gabarito}<hr>
-                                <label>Respostas do aluno:</label>
+                                <strong>✅ Prova: ${prova.nome}</strong><br>
+                                <strong>Gabarito:</strong> ${dados.gabarito}<hr>
+                                <label>Nome do Aluno:</label>
+                                <input type="text" id="nomeAluno" placeholder="Nome do aluno" style="width:100%; padding:10px; margin:10px 0;">
+                                <label>Respostas do aluno (ex: ABCDA):</label>
                                 <input type="text" id="respostasAluno" placeholder="Ex: A B C D A" style="width:100%; padding:10px; margin:10px 0;">
-                                <button class="btn btn-primary" onclick="calcularNota('${dados.gabarito}')">Calcular Nota</button>
+                                <button class="btn btn-primary" onclick="calcularNota(${prova.id}, '${dados.gabarito}')">Calcular e Salvar</button>
                             </div>`;
-                    } else alert('Prova não encontrada no banco de dados!');
+                    } else alert('Prova não encontrada!');
                 } catch(e) { alert('QR Code inválido!'); }
             }).catch(err => { alert('Erro na câmera: ' + err); scannerAtivo = false; });
         }
 
-        function calcularNota(gabaritoString) {
+        function calcularNota(provaId, gabaritoString) {
+            const nomeAluno = document.getElementById('nomeAluno').value.trim();
             const respostas = document.getElementById('respostasAluno').value.toUpperCase().replace(/\s/g, '').split('');
             const gabarito = gabaritoString.split('');
             let acertos = 0;
-            for (let i = 0; i < Math.min(respostas.length, gabarito.length); i++) if (respostas[i] === gabarito[i]) acertos++;
+            let respostasAluno = [];
+            
+            for (let i = 0; i < Math.min(respostas.length, gabarito.length); i++) {
+                if (respostas[i] === gabarito[i]) {
+                    acertos++;
+                    respostasAluno.push(respostas[i]);
+                } else {
+                    respostasAluno.push(respostas[i] || '?');
+                }
+            }
+            
             const nota = (acertos / gabarito.length) * 10;
-            document.getElementById('resultadoCorrecao').innerHTML += `<div style="background:#d1ecf1; margin-top:15px; padding:15px; border-radius:10px;">
-                Acertos: ${acertos}/${gabarito.length}<br><strong style="font-size:24px;">Nota: ${nota.toFixed(1)}</strong></div>`;
+            const prova = provas.find(p => p.id === provaId);
+            
+            if (nomeAluno && prova) {
+                historicoCorrecoes.push({
+                    id: Date.now(),
+                    aluno: nomeAluno,
+                    provaId: provaId,
+                    provaNome: prova.nome,
+                    nota: nota,
+                    acertos: acertos,
+                    totalQuestoes: gabarito.length,
+                    respostas: respostasAluno,
+                    data: new Date().toLocaleDateString()
+                });
+                salvarHistorico();
+            }
+            
+            document.getElementById('resultadoCorrecao').innerHTML += `
+                <div style="background:#d1ecf1; margin-top:15px; padding:15px; border-radius:10px;">
+                    <strong>📊 RESULTADO</strong><br>
+                    Aluno: ${nomeAluno || 'Não informado'}<br>
+                    Acertos: ${acertos}/${gabarito.length}<br>
+                    <strong style="font-size:24px;">Nota: ${nota.toFixed(1)}</strong><br>
+                    ${nomeAluno ? '✅ Nota salva no histórico!' : ''}
+                </div>`;
+            
+            document.getElementById('nomeAluno').value = '';
+            document.getElementById('respostasAluno').value = '';
+        }
+
+        // Histórico
+        function atualizarHistorico() {
+            atualizarGrafico();
+            
+            if (historicoCorrecoes.length === 0) {
+                document.getElementById('listaCorrecoes').innerHTML = '<p>Nenhuma correção salva ainda.</p>';
+                return;
+            }
+            
+            // Estatísticas por questão
+            const estatisticas = {};
+            historicoCorrecoes.forEach(c => {
+                c.respostas.forEach((resp, idx) => {
+                    if (!estatisticas[idx]) estatisticas[idx] = { total: 0, acertos: 0 };
+                    estatisticas[idx].total++;
+                    // Para saber se acertou, precisamos da prova original
+                });
+            });
+            
+            let estatHtml = '<h4>📈 Estatísticas por Questão</h4><div style="display:flex; flex-wrap:wrap; gap:10px;">';
+            for (let i = 0; i < 10; i++) {
+                if (estatisticas[i]) {
+                    const perc = (estatisticas[i].acertos / estatisticas[i].total) * 100;
+                    estatHtml += `<div style="background:#f0f0f0; padding:10px; border-radius:8px; min-width:80px; text-align:center;">
+                        <strong>Q${i+1}</strong><br>${perc.toFixed(0)}%</div>`;
+                }
+            }
+            estatHtml += '</div>';
+            document.getElementById('estatisticasQuestoes').innerHTML = estatHtml;
+            
+            const html = `<table><thead><tr><th>Aluno</th><th>Prova</th><th>Nota</th><th>Data</th><th>Ações</th></tr></thead><tbody>
+                ${historicoCorrecoes.map(c => `<tr>
+                    <td>${c.aluno}</td><td>${c.provaNome}</td><td><strong>${c.nota.toFixed(1)}</strong></td>
+                    <td>${c.data}</td><td><button class="btn btn-danger" onclick="excluirCorrecao(${c.id})">Excluir</button></td>
+                </tr>`).join('')}
+            </tbody></table>`;
+            document.getElementById('listaCorrecoes').innerHTML = html;
+        }
+        
+        function atualizarGrafico() {
+            if (historicoCorrecoes.length === 0) return;
+            const notas = historicoCorrecoes.map(c => c.nota);
+            const media = notas.reduce((a,b) => a + b, 0) / notas.length;
+            
+            const ctx = document.getElementById('graficoNotas').getContext('2d');
+            if (graficoChart) graficoChart.destroy();
+            graficoChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: historicoCorrecoes.map(c => c.aluno.substring(0,10)),
+                    datasets: [{
+                        label: 'Notas',
+                        data: notas,
+                        backgroundColor: '#28a745',
+                        borderColor: '#1e7e34',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'top' }, title: { display: true, text: `Média da Turma: ${media.toFixed(1)}` } }
+                }
+            });
+        }
+        
+        function excluirCorrecao(id) {
+            historicoCorrecoes = historicoCorrecoes.filter(c => c.id !== id);
+            salvarHistorico();
+            atualizarHistorico();
+        }
+        
+        function exportarExcel() {
+            if (historicoCorrecoes.length === 0) { alert('Nenhum dado para exportar!'); return; }
+            let csv = "Aluno,Prova,Nota,Data\n";
+            historicoCorrecoes.forEach(c => {
+                csv += `"${c.aluno}","${c.provaNome}",${c.nota.toFixed(1)},"${c.data}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `historico_notas_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            alert('✅ Arquivo CSV exportado!');
+        }
+        
+        function compartilharHistorico() {
+            if (historicoCorrecoes.length === 0) { alert('Nenhum dado para compartilhar!'); return; }
+            let texto = "*HISTÓRICO DE NOTAS*\n\n";
+            historicoCorrecoes.forEach(c => {
+                texto += `📌 ${c.aluno} - ${c.provaNome}: ${c.nota.toFixed(1)} (${c.data})\n`;
+            });
+            if (navigator.share) {
+                navigator.share({ title: 'Histórico de Notas', text: texto });
+            } else {
+                navigator.clipboard.writeText(texto);
+                alert('✅ Histórico copiado!');
+            }
+        }
+        
+        function limparHistorico() {
+            if (confirm('⚠️ Tem certeza? Isso irá apagar TODO o histórico de correções.')) {
+                historicoCorrecoes = [];
+                salvarHistorico();
+                atualizarHistorico();
+                alert('Histórico limpo!');
+            }
         }
 
         window.onload = () => {
